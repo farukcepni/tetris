@@ -1,0 +1,46 @@
+body {background-color:#F7F7F7; font-size:14px; margin:0; padding:0;}
+body * { font-family: "Play", "Helvetica Neue", Helvetica, Arial, sans-serif;}
+a, a:hover {text-decoration:none; }
+header {background-color:#EEE;  border-bottom:1px solid #CCC;}
+header h1{text-align:center; margin:0; padding:0; font-size:32px; font-weight: bold; line-height:40px;}
+header h1 a,
+header h1 a:hover{color:#333}
+
+.container{margin:10px auto; width:340px; }
+.tetris-container {
+    box-shadow: 0 0 12px #000;background-color: #303741;
+    text-align:center; }
+.canvas-container {position:relative;}
+.info {min-height:60px; position:relative;}
+.info div,
+.info .button a {font-size:20px; font-weight:bold; color: #428bca; line-height:20px;}
+.info .score{
+    position:absolute; left:46%; top:0; background-color:#1C2026; padding:10px;
+    border-bottom-left-radius: 10px; border-bottom-right-radius: 10px;
+    }
+.info .level {position:absolute; right:10px; top:12px; font-weight: bold; font-size:24px;}
+.info .button {position:absolute; left:10px; top:6px; font-size:34px;}
+
+ul.canvas { display:inline-table; margin:0; padding:0; z-index:10}
+ul.canvas li { display:table-row }
+ul.canvas li span {
+    display:table-cell;
+    background-color: #282E37;
+    width:28px; height:28px;
+    border:1px solid #303741;
+    border-radius:3px;
+}
+
+ul.canvas li span.current{ background-color: #E84B40 !important; }
+ul.canvas li span.current.yellow{ background-color: #FD9F28 !important;}
+ul.canvas li span.current.red{ background-color: #E84B40 !important; }
+ul.canvas li span.settled{ background-color: #428bca !important ; }
+
+.game_splash{
+    left:0;top:20%; width:100%;
+    z-index:1000; position:absolute;
+    background-color: #428bca; height:100px; line-height: 100px;;
+    opacity:0.2; filter: alpha(opacity=20);
+    color:#000; font-weight:bold; font-size:30px;
+    display:none;
+}
