@@ -1,33 +1,55 @@
-function Tetris(row_count, col_count) {
+function Tetris(container, next_container, row_count, col_count) {
     this.key = '';
-    this.level = 1;
-    this.delay = 600;
+    this.delay = 1000;
     this.lines = 0;
-    this.score = 0;
+    this.score = 10;
+    this.level = 1;
+    this.score_values = {
+        1: 1,
+        2: 3,
+        3: 5,
+        4: 8
+    }
+
+    this.container = container;
+    this.next_container = next_container;
 
     this.row_count = row_count;
     this.col_count = col_count;
 
     this.canvas = null;
+    this.canvas_for_next = null;
     this.next = null;
     this.current = null;
 
     this.timer = null;
     this.is_playing = false;
+    this.is_over = false;
 
     this.key_events = {
         37: 'move_left',
         38: 'rotate',
         39: 'move_right',
         40: 'move_down',
-        32: 'set_down'
+        32: 'set_down',
+        80: 'toggle_play',
+
     };
+
+    this.event_callbacks = {
+        'score_update': null,
+        'level_update': null,
+        'pause': null,
+        'play': null,
+        'game_over': null,
+    }
 
     this.constructor();
 }
 
-function Canvas(row_count, col_count) {
+function Canvas(container, row_count, col_count) {
     this.key = '';
+    this.container = container;
     this.row_count = row_count;
     this.col_count = col_count;
 
@@ -54,11 +76,55 @@ function Piece() {
 Tetris.prototype = {
     constructor: function() {
         this.key = this.create_key();
-        this.canvas = new Canvas(this.row_count, this.col_count);
+        this.start_new();
 
-        this.set_next_piece();
-        this.set_current_piece();
-        document.onkeydown = control_keys;
+        window.addEventListener('keydown', (
+            function(self){
+                return function(e) {
+                    return self.control_keys(e);
+                }
+            })(this));
+    },
+
+    add_event_listener: function(event, callback) {
+        this.event_callbacks[event] = callback;
+    },
+
+    call_listener: function(event) {
+        if (this.event_callbacks[event] != null) {
+            this.event_callbacks[event]();
+        }
+    },
+
+    toggle_play: function() {
+        if (this.is_playing) {
+            this.pause();
+        } else {
+            this.play();
+        }
+    },
+
+    update_score: function(line_count) {
+        this.lines += line_count
+        this.score += this.score_values[line_count];
+        this.call_listener('score_update');
+    },
+
+    update_level: function(new_level) {
+        this.level = new_level;
+        this.call_listener('level_update');
+
+        if (this.delay >= 100) {
+            this.delay = 1000 - (this.level * 50);
+            this.set_timer();
+        }
+    },
+
+    check_level: function() {
+        new_level = Math.ceil(this.score / 100);
+        if (new_level > this.level) {
+            this.update_level(new_level);
+        }
     },
 
     create_key: function() {
@@ -71,6 +137,7 @@ Tetris.prototype = {
             this[this.key_events[e.keyCode]]();
             return false;
         }
+
         return true
     },
 
@@ -88,18 +155,48 @@ Tetris.prototype = {
 
     set_next_piece: function() {
         this.next = Pieces.select_one();
+        this.canvas_for_next.move_piece(this.next.get_current_position());
+    },
+
+    set_timer: function() {
+        if (this.timer != null) {
+            clearInterval(this.timer);
+        }
+
+        this.timer = setInterval(
+            (function(self) {
+                return function() {
+                    return tetris.move_down();
+                }
+            }(this)), this.delay
+        );
+    },
+
+    start_new: function() {
+        this.score = 0;
+        this.level = 1;
+        this.is_playing = true;
+        this.set_timer()
+        this.call_listener('score_update');
+        this.call_listener('level_update');
+        this.canvas = new Canvas(this.container, this.row_count, this.col_count);
+        this.canvas_for_next = new Canvas(this.next_container, 4, 4);
+
+        this.set_next_piece();
+        this.set_current_piece();
+        this.call_listener('play');
     },
 
     play: function() {
-        this.timer = setInterval(timer, this.delay);
+        this.set_timer();
         this.is_playing = true;
-        this.canvas.played();
+        this.call_listener('play');
     },
 
     pause: function() {
         clearInterval(this.timer);
         this.is_playing = false;
-        this.canvas.paused();
+        this.call_listener('pause');
     },
 
     is_game_over: function() {
@@ -108,8 +205,10 @@ Tetris.prototype = {
     },
 
     over_game: function() {
-        this.pause();
-        this.canvas.game_over();
+        clearInterval(this.timer);
+        this.is_playing = false;
+        this.is_over = true;
+        this.call_listener('game_over');
     },
 
     move_piece: function() {
@@ -150,9 +249,9 @@ Tetris.prototype = {
         }
         var completed_rows = this.canvas.get_completed_rows();
         if (completed_rows.length > 0) {
-            this.lines += completed_rows.length;
+            this.update_score(completed_rows.length);
+            this.check_level();
             this.canvas.complete_rows(completed_rows);
-            this.canvas.update_score(this.lines);
         }
 
         this.set_current_piece();
@@ -176,32 +275,11 @@ Tetris.prototype = {
 Canvas.prototype = {
     constructor: function() {
         this.key = this.create_key();
+        document.getElementById(this.container).innerHTML = this.get().outerHTML;
     },
 
     create_key: function() {
         return 'canvas-' + create_random_key(6, false, false, true);
-    },
-
-    update_score: function(score) {
-        document.querySelector('#info_score').innerHTML = score;
-    },
-
-    _update_splash: function(message, display) {
-        var el = document.querySelector('.game_splash');
-        el.innerHTML = message;
-        el.style.display = display;
-    },
-
-    game_over: function() {
-        this._update_splash('GAME OVER', 'block');
-    },
-
-    paused: function() {
-        this._update_splash('PAUSED', 'block');
-    },
-
-    played: function() {
-        this._update_splash('', 'none');
     },
 
     is_available: function(position) {
@@ -241,6 +319,7 @@ Canvas.prototype = {
 
     complete_rows: function(rows) {
         var j, t, el, settled_els;
+
         for (var i = 0; i < rows.length; i++) {
             this.clean_row(rows[i]);
             for (j = rows[i] - 1; j >= 0; j--) {
@@ -274,7 +353,7 @@ Canvas.prototype = {
         for (i in new_positions) {
             row = new_positions[i][0];
             col = new_positions[i][1];
-            el = document.querySelector('.cell_' + row + '_' + col);
+            el = document.querySelector('#' + this.key + ' .cell_' + row + '_' + col);
             if (el){
                 el.classList.add(this.current_piece_class);
             }
@@ -282,7 +361,7 @@ Canvas.prototype = {
     },
 
     get_current_piece_selector: function() {
-        return '.' + this.current_piece_class;
+        return '#' + this.key + ' .' + this.current_piece_class;
     },
 
     get_settled_piece_selector: function(row, col) {
@@ -335,12 +414,20 @@ Canvas.prototype = {
     },
 
     create_col_element: function(row, col) {
-        return create_element(this.col_el, {
+        var el = create_element(this.col_el, {
             'id': 'cell_' + row + '_' + col,
-            'class': 'cell cell_' + row + '_' + col,
+            'class': 'cell col_' + col + ' row_' + row + ' cell_' + row + '_' + col,
             'data-row': row,
             'data-col': col
         });
+
+        var inline = create_element('em', {
+            'id': 'inline_cell_'+ row + '_' + col,
+            'class': 'inline_cell'
+        })
+
+        el.appendChild(inline);
+        return el;
     }
 
 };

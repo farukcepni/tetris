@@ -7,41 +7,71 @@
     <script type='text/javascript' src='utils.js'></script>
     <script type='text/javascript' src='tetris.js'></script>
     <link rel='stylesheet' href='main.css' />
+
 </head>
 <body>
-<header>
-    <h1><a href='/'>tetris</a></h1>
-</header>
 
-<div class='container'>
-    <div class='tetris-container'>
-        <div class='info'>
-            <div class='button'><a href='javascript:pauseplay()' id='pause_play'>Pause</a></div>
-            <div class='score' id='info_score'>0</div>
-            <div class='level'>x<span id='info_level'>1</span></div>
-        </div>
-        <div class='canvas-container' id='canvas-container'>
-            <div class='game_splash'>GAME OVER</div>
+    <div class='tetris anchient'>
+        <div class='message_box' id='message-box'></div>
+        <div class='canvas_container' id='canvas-container'></div>
+        <div class='game_info'>
+            <div class='item score'>
+                <label>Score</label>
+                <div id='info-score'>0</div>
+            </div>
+
+            <div class='item level'>
+                <label>Level</label>
+                <div id='info-level'>1</div>
+            </div>
+
+            <div class='item next'>
+                <label>Next</label>
+                <div id='next-container'></div>
+            </div>
+            <div class='item control'>
+                <div><a href='#' onclick='tetris.toggle_play();' id='toggle_play_btn'>Pause</a></div>
+                <div><a href='#' onclick='tetris.start_new()' id='start_game_btn'>Start New Game</a></div>
+            </div>
         </div>
     </div>
-</div>
+</body>
 
 <script type='text/javascript'>
-    function pauseplay() {
-        var el = document.querySelector('#pause_play');
-        if (tetris.is_playing) {
-            tetris.pause();
-            el.innerHTML = 'Play'
-        } else {
-            tetris.play();
-            el.innerHTML = 'Pause';
-        }
+
+    function show_splash(message) {
+        el = document.getElementById('message-box');
+        el.innerHTML = message;
+        el.style.display = 'block';
     }
-    function control_keys(e) { return tetris.control_keys(e, tetris); }
-    function timer(){ return tetris.move_down() }
-    tetris = new Tetris(20, 11);
+
+    tetris = new Tetris('canvas-container', 'next-container', 20, 10);
+
+
+    tetris.add_event_listener('pause', function() {
+        show_splash('Paused');
+        document.getElementById('toggle_play_btn').innerHTML = 'Play';
+
+    })
+
+    tetris.add_event_listener('game_over', function() {
+        show_splash('Game Over');
+    })
+
+    tetris.add_event_listener('play', function() {
+        console.log('playin');
+        document.getElementById('message-box').style.display = 'none';
+        document.getElementById('toggle_play_btn').innerHTML = 'Pause';
+    })
+
+    tetris.add_event_listener('score_update', function() {
+        document.getElementById('info-score').innerHTML = tetris.score;
+    })
+
+    tetris.add_event_listener('level_update', function() {
+        document.getElementById('info-level').innerHTML = tetris.level;
+    })
+
     tetris.play();
-    document.getElementById('canvas-container').appendChild(tetris.canvas.get());
 </script>
-</body>
 </html>
